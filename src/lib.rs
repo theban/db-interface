@@ -8,7 +8,6 @@ mod db_impl;
 
 use memrange::Range;
 use iter::ManyBitmapSlicesIter;
-//use theban_db::BitmapSliceIter;
 use rustc_serialize::{Encodable,Decodable};
 
 pub trait DBInterface {
@@ -26,8 +25,8 @@ pub trait DBInterface {
     fn obj_put<T: Encodable>(&mut self,tbl: &String, rng: Range, obj: &T );
     fn obj_put_many<T: Encodable>(&mut self, tbl: &String, args: Vec<(Range, &T)> );
     
-    //fn obj_get<T: RustcDecodable>(tbl: &String, rng: Range -> Iter<Range, Cow<T>>;
-    //fn obj_get_many<T: RustcDecodable>(tbl: &String, ranges: Vec<Range> ) -> Iter<Range, Cow<T>>;
+    //fn obj_get<T: Decodable>(tbl: &String, rng: Range -> Iter<Range, Cow<T>>;
+    //fn obj_get_many<T: Decodable>(tbl: &String, ranges: Vec<Range> ) -> Iter<Range, Cow<T>>;
     
     fn obj_put_raw(&mut self, tbl: &String, range: Range, obj: Vec<u8> );
     fn obj_put_raw_many(&mut self, tbl: &String, args: Vec<(Range,Vec<u8>)> );
