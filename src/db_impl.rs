@@ -32,7 +32,8 @@ impl DBInterface for DB {
 
     fn bin_get_many<'a>(&'a self, tbl: &String, ranges: Vec<Range>) -> Option<ManyBitmapSlicesIter<'a>> {
         if !self.has_table(tbl) { return None; }
-        return Some(ManyBitmapSlicesIter::new(self, tbl.clone(), ranges));
+        return Some(ranges.into_iter.flat_map(|rng| self.query_bitmap(tbl, rng)));
+        //return Some(ManyBitmapSlicesIter::new(self, tbl.clone(), ranges));
     }
 
     fn bin_del(&mut self, tbl: &String, rng: Range){
