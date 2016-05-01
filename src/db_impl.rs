@@ -4,10 +4,15 @@ extern crate rmp_serialize as msgpack;
 extern crate rustc_serialize;
 
 use ::DBInterface;
+use ::BitmapTableIter;
+use ::ObjectTableRawIter;
+use ::ObjectTableIter;
 use memrange::Range;
 use iter::ManyBitmapSlicesIter;
+use iter::ManyObjectsDataIter;
+use iter::ManyObjectsDecodedIter;
 use theban_db::{Bitmap,Object,DB};
-use rustc_serialize::Encodable;
+use rustc_serialize::{Encodable,Decodable};
 use msgpack::Encoder;
 
 impl DBInterface for DB {
@@ -25,16 +30,16 @@ impl DBInterface for DB {
         }
     }
 
-    fn bin_get<'a>(&'a self, tbl: &String, rng: Range ) -> Option<ManyBitmapSlicesIter<'a>> {
+    fn bin_get<'db>(&'db self, tbl: &String, rng: Range ) -> Option<BitmapTableIter<'db>> {
         if !self.has_table(tbl) { return None; }
-        return Some(ManyBitmapSlicesIter::new(self, tbl.clone(), vec![rng]));
+        return Some(Box::new(ManyBitmapSlicesIter::new( self, tbl.clone(), vec![rng])));
     }
 
-    fn bin_get_many<'a>(&'a self, tbl: &String, ranges: Vec<Range>) -> Option<ManyBitmapSlicesIter<'a>> {
+    fn bin_get_many<'db>(&'db self, tbl: &String, ranges: Vec<Range>) -> Option<BitmapTableIter<'db>> {
         if !self.has_table(tbl) { return None; }
-        return Some(ranges.into_iter.flat_map(|rng| self.query_bitmap(tbl, rng)));
-        //return Some(ManyBitmapSlicesIter::new(self, tbl.clone(), ranges));
+        return Some(Box::new(ManyBitmapSlicesIter::new(self, tbl.clone(), ranges)));
     }
+
 
     fn bin_del(&mut self, tbl: &String, rng: Range){
         self.delete_bitmap(tbl, 1, rng)
@@ -86,5 +91,23 @@ impl DBInterface for DB {
         for rng in ranges {
             self.obj_del_intersecting(tbl, rng);
         }
+    }
+
+    fn obj_get<'db, T: Decodable + 'db>(&'db self, tbl: &String, rng: Range) -> Option<ObjectTableIter<T>>{
+        return self.obj_get_many(tbl, vec![rng])
+    }
+
+    fn obj_get_many<'db, T: Decodable + 'db>(&'db self, tbl: &String, ranges: Vec<Range> ) -> Option<ObjectTableIter<T>>{
+        if !self.has_table(tbl) { return None; }
+        return Some(Box::new(ManyObjectsDecodedIter::<'db,T>::new( self, tbl.clone(), ranges)));
+    }
+
+    fn obj_get_raw<'db>(&'db self, tbl: &String, rng: Range ) -> Option<ObjectTableRawIter<'db>> {
+        return self.obj_get_raw_many(tbl, vec![rng])
+    }
+
+    fn obj_get_raw_many<'db>(&'db self, tbl: &String, ranges: Vec<Range>) -> Option<ObjectTableRawIter<'db>> {
+        if !self.has_table(tbl) { return None; }
+        return Some(Box::new(ManyObjectsDataIter::new( self, tbl.clone(), ranges)));
     }
 }

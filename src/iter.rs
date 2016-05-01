@@ -5,14 +5,21 @@ use ::memrange::Range;
 use theban_db::BitmapSliceIter;
 use self::theban_interval_tree::RangePairIter;
 
-use theban_db::{DB, Object};
-use theban_db::BitmapSlice;
+use std::marker::PhantomData;
+use std::io::Cursor;
 
+use theban_db::{DB, Object, BitmapSlice};
+
+use rustc_serialize::Decodable;
+use msgpack::Decoder;
 
 pub trait Queryable<'db >: Sized {
     fn get_next_iter_for(db: &'db DB, tbl: &String, rng: Range) -> Option<Self>;
 } 
 
+
+//Todo: Can this be replaced with std::iter::FlatMap?
+//pub struct ManyRangeIter<'db, Iter: Iterator<Item=(Range, InnerItem)> + Queryable<'db>, InnerItem> {
 pub struct ManyRangeIter<'db, Iter: Iterator<Item=(Range, InnerItem)> + Queryable<'db>, InnerItem> {
     database: &'db DB,
     table: String,
@@ -76,10 +83,46 @@ impl<'db> Queryable<'db> for BitmapSliceIter<'db> {
 
 pub type ManyBitmapSlicesIter<'db> = ManyRangeIter<'db, BitmapSliceIter<'db>, BitmapSlice<'db>>;
 
+
 impl<'db> Queryable<'db> for RangePairIter<'db, Object> {
     fn get_next_iter_for(db: &'db DB, tbl: &String, rng: Range) -> Option<RangePairIter<'db, Object>>{
         return db.query_object(tbl, rng);
     }
 }
 
-pub type ManyObjectsIter<'db> = ManyRangeIter<'db, RangePairIter<'db, Object>, Object>;
+pub type ManyObjectsIter<'db> = ManyRangeIter<'db, RangePairIter<'db, Object>, &'db Object>;
+
+pub struct ManyObjectsDataIter<'db> {
+    orig_iter: ManyRangeIter<'db, RangePairIter<'db, Object>, &'db Object>,
+}
+
+impl<'db> Iterator for ManyObjectsDataIter<'db> {
+    type Item = (Range, Range, &'db Vec<u8>);
+    fn next(&mut self) -> Option<(Range, Range, &'db Vec<u8>)> {
+        self.orig_iter.next().map(|(q,r, obj)| (q,r, &obj.data))
+    }
+}
+
+impl<'db> ManyObjectsDataIter<'db> {
+    pub fn new(db: &'db DB, tbl: String, rngs: Vec<Range>) -> Self {
+        return ManyObjectsDataIter::<'db>{orig_iter: ManyObjectsIter::new(db, tbl, rngs)}
+    }
+}
+
+pub struct ManyObjectsDecodedIter<'db,T> {
+    orig_iter: ManyRangeIter<'db, RangePairIter<'db, Object>, &'db Object>,
+    converted_object_type: PhantomData<T>,
+}
+
+impl<'db,T: Decodable> Iterator for ManyObjectsDecodedIter<'db,T> {
+    type Item = (Range, Range, T);
+    fn next(&mut self) -> Option<(Range, Range, T)> {
+        self.orig_iter.next().map(|(q,r, obj)| (q,r,T::decode(&mut Decoder::new(Cursor::new(&obj.data))).unwrap() ) )
+    }
+}
+
+impl<'db, T> ManyObjectsDecodedIter<'db, T> {
+    pub fn new(db: &'db DB, tbl: String, rngs: Vec<Range>) -> Self {
+        return ManyObjectsDecodedIter::<'db,T>{orig_iter: ManyObjectsIter::new(db, tbl, rngs), converted_object_type: PhantomData}
+    }
+}
