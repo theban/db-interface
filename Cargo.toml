@@ -1,0 +1,12 @@
+[package]
+name = "theban_db_interface"
+version = "0.1.0"
+authors = ["coco <coco@hexgolems.com>"]
+
+[dependencies]
+memrange = "0.1.*"
+theban_db = "0.5.*"
+theban_interval_tree = "0.6.*"
+rmp = "0.7.*"
+rmp-serialize = "0.7.*"
+rustc-serialize = "0.3.*"
