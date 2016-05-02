@@ -1,17 +1,17 @@
 extern crate theban_db;
 extern crate theban_interval_tree;
+//extern crate rmp_serialize as msgpack;
 
 use ::memrange::Range;
 use theban_db::BitmapSliceIter;
 use self::theban_interval_tree::RangePairIter;
 
 use std::marker::PhantomData;
-use std::io::Cursor;
 
 use theban_db::{DB, Object, BitmapSlice};
 
 use rustc_serialize::Decodable;
-use msgpack::Decoder;
+use ::DBResult;
 
 pub trait Queryable<'db >: Sized {
     fn get_next_iter_for(db: &'db DB, tbl: &String, rng: Range) -> Option<Self>;
@@ -115,9 +115,9 @@ pub struct ManyObjectsDecodedIter<'db,T> {
 }
 
 impl<'db,T: Decodable> Iterator for ManyObjectsDecodedIter<'db,T> {
-    type Item = (Range, Range, T);
-    fn next(&mut self) -> Option<(Range, Range, T)> {
-        self.orig_iter.next().map(|(q,r, obj)| (q,r,T::decode(&mut Decoder::new(Cursor::new(&obj.data))).unwrap() ) )
+    type Item = (Range, Range, DBResult<'db, T>);
+    fn next(&mut self) -> Option<(Range, Range, DBResult<'db,T>)> {
+        self.orig_iter.next().map(|(q,r, obj)| (q,r, ::decode_obj(r, &obj.data) ) )
     }
 }
 
