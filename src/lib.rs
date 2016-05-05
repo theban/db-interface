@@ -2,6 +2,7 @@ extern crate memrange;
 extern crate theban_db;
 extern crate rmp_serialize as msgpack;
 extern crate rustc_serialize;
+#[macro_use] extern crate quick_error;
 
 mod iter;
 mod db_impl;
@@ -18,7 +19,7 @@ pub use error::DBResult;
 pub use error::DBInterfaceError;
 
 pub type BitmapTableIter<'db> =     Box<Iterator<Item=(Range, Range, BitmapSlice<'db>)> + 'db>;
-pub type ObjectTableIter<'db,T> =   Box<Iterator<Item=(Range, Range, DBResult<'db, T>)> + 'db>;
+pub type ObjectTableIter<'db,T> =   Box<Iterator<Item=(Range, Range, DBResult<T>)> + 'db>;
 pub type ObjectTableRawIter<'db> =  Box<Iterator<Item=(Range, Range, &'db Vec<u8>)> +'db>;
 
 pub trait DBInterface {

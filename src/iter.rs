@@ -1,6 +1,5 @@
 extern crate theban_db;
 extern crate theban_interval_tree;
-//extern crate rmp_serialize as msgpack;
 
 use ::memrange::Range;
 use theban_db::BitmapSliceIter;
@@ -115,8 +114,8 @@ pub struct ManyObjectsDecodedIter<'db,T> {
 }
 
 impl<'db,T: Decodable> Iterator for ManyObjectsDecodedIter<'db,T> {
-    type Item = (Range, Range, DBResult<'db, T>);
-    fn next(&mut self) -> Option<(Range, Range, DBResult<'db,T>)> {
+    type Item = (Range, Range, DBResult<T>);
+    fn next(&mut self) -> Option<(Range, Range, DBResult<T>)> {
         self.orig_iter.next().map(|(q,r, obj)| (q,r, ::decode_obj(r, &obj.data) ) )
     }
 }
