@@ -5,6 +5,7 @@ use ::memrange::Range;
 use theban_db::BitmapSliceIter;
 use self::theban_interval_tree::RangePairIter;
 
+use std::borrow::Cow;
 use std::marker::PhantomData;
 
 use theban_db::{DB, Object, BitmapSlice};
@@ -96,9 +97,9 @@ pub struct ManyObjectsDataIter<'db> {
 }
 
 impl<'db> Iterator for ManyObjectsDataIter<'db> {
-    type Item = (Range, Range, &'db Vec<u8>);
-    fn next(&mut self) -> Option<(Range, Range, &'db Vec<u8>)> {
-        self.orig_iter.next().map(|(q,r, obj)| (q,r, &obj.data))
+    type Item = (Range, Range, Cow<'db,Vec<u8>>);
+    fn next(&mut self) -> Option< (Range, Range, Cow<'db,Vec<u8>>) > {
+        self.orig_iter.next().map(|(q,r, obj)| (q,r, Cow::Borrowed(&obj.data)))
     }
 }
 
