@@ -58,10 +58,11 @@ impl<'db, Iter: Iterator<Item=(Range,InnerItem)> + Queryable<'db>, InnerItem > I
         self.ensure_current_query_iter();
 
 
-        if let Some(ref mut query_iter) = self.current_query_iter.take() {
+        if let Some(mut query_iter) = self.current_query_iter.take() {
 
             //query_iter for the current range has an element => return it
             if let Some((rng, data)) =  query_iter.next() {
+                self.current_query_iter = Some(query_iter);
                 return Some( ( self.current_range.unwrap(), rng, data ) )
             }
 
@@ -69,7 +70,7 @@ impl<'db, Iter: Iterator<Item=(Range,InnerItem)> + Queryable<'db>, InnerItem > I
             self.current_query_iter = None;
             return self.next();
         }
-        //even after enusre_current_query_iter(), there is no query_iter => all ranges have been
+        //even after ensure_current_query_iter(), there is no query_iter => all ranges have been
         //used up, iteration finished.
         return None;
     }
