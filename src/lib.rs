@@ -99,16 +99,15 @@ mod tests{
     use theban_db::DB;
     use memrange::{Range,range};
     fn test_dbi_obj<DBI: ::DBInterface>(dbi: &mut DBI){
-        dbi.obj_put::<u64>(&"tbl".into(),range(123,124), &1 ).ok();
-        dbi.obj_put::<u64>(&"tbl".into(),range(222,235), &2 ).ok();
-        dbi.obj_put::<u64>(&"tbl".into(),range(125,224), &3 ).ok();
-        dbi.obj_put::<u64>(&"tbl".into(),range(  1,  2), &4 ).ok();
+        dbi.obj_put_ok::<u64>(&"tbl".into(),range(123,124), &1 );
+        dbi.obj_put_ok::<u64>(&"tbl".into(),range(222,235), &2 );
+        dbi.obj_put_ok::<u64>(&"tbl".into(),range(125,224), &3 );
+        dbi.obj_put_ok::<u64>(&"tbl".into(),range(  1,  2), &4 );
         let result1 = dbi.obj_get_ok::<u64>(&"tbl".into(),range(124,221)).map(|(_,r,_)| r).collect::<Vec<Range>>();
         assert_eq!(result1, vec![range(123,124),range(125,224)] );
         let result2 = dbi.obj_get_ok::<u64>(&"tbl".into(),range(124,221)).collect::<Vec<(Range,Range,u64)>>();
         assert_eq!(result2, vec![(range(124,221), range(123,124), 1), (range(124,221), range(125,224), 3)] );
     }
-
 
     #[test]
     fn interface_db_test() {
