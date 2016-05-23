@@ -2,6 +2,9 @@
 name = "theban_db_interface"
 version = "0.1.0"
 authors = ["coco <coco@hexgolems.com>"]
+license-file = "LICENSE"
+repository = "https://github.com/theban/db-interface"
+description = "a common interface for the db-server and the datastructure"
 
 [dependencies]
 rmp = "0.7.*"
