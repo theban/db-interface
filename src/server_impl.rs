@@ -55,16 +55,9 @@ impl DBInterface for DBClient  {
         return self.send(DBInstruction::Save(path.clone()))
     }
 
-    fn bin_put(&mut self, tbl: &String, rng: Range, data: Vec<u8> ) ->DBResult<()>{
-        return self.bin_put_many(tbl, vec![(rng,data)])
-    }
     fn bin_put_many(&mut self, tbl: &String, setters: Vec<(Range,Vec<u8>)> ) ->DBResult<()>{
         let writes = setters.into_iter().map(|(rng,data)| WriteAccess::new(rng, data)).collect();
         return self.send(DBInstruction::BPut(tbl.clone(), writes ));
-    }
-
-    fn bin_get<'db>(&'db mut self, tbl: &String, rng: Range) -> DBResult<BitmapTableIter<'db>>{
-        return self.bin_get_many(tbl, vec![rng])
     }
 
     fn bin_get_many<'db>(&'db mut self, tbl: &String, ranges: Vec<Range>) -> DBResult<BitmapTableIter<'db>>{
@@ -78,25 +71,14 @@ impl DBInterface for DBClient  {
         }
     }
 
-    fn bin_del(&mut self, tbl: &String, rng: Range)-> DBResult<()>{
-        self.bin_del_many(tbl, vec![rng])
-    }
-
     fn bin_del_many(&mut self, tbl: &String, ranges: Vec<Range>) -> DBResult<()>{
         self.send(DBInstruction::BDel(tbl.clone(), ranges))
     }
 
-    fn obj_put<T: Encodable>(&mut self,tbl: &String, rng: Range, obj: &T )-> DBResult<()>{
-        self.obj_put_many(tbl, vec![(rng, obj)])
-    }
     fn obj_put_many<T: Encodable>(&mut self, tbl: &String, args: Vec<(Range, &T)> )-> DBResult<()>{
         self.obj_put_raw_many(tbl, args.iter().map(|&(r,o)| (r,::encode_obj(r,o).unwrap()) ).collect() )
     }
     
-    fn obj_get<'db, T: Decodable +'db>(&'db mut self, tbl: &String, rng: Range) -> DBResult<ObjectTableIter<T>>{
-        self.obj_get_many(tbl, vec![rng])
-    }
-
     fn obj_get_many<'db, T: Decodable + 'db>(&'db mut self, tbl: &String, ranges: Vec<Range> ) -> DBResult<ObjectTableIter<T>>{
         try!(self.send(DBInstruction::OGet(tbl.clone(), ranges)));
         let answer = try!(self.read());
@@ -108,17 +90,9 @@ impl DBInterface for DBClient  {
         }
     }
     
-    fn obj_put_raw(&mut self, tbl: &String, range: Range, obj: Vec<u8> )-> DBResult<()>{
-        self.obj_put_raw_many(tbl, vec![(range, obj)])
-    }
-
     fn obj_put_raw_many(&mut self, tbl: &String, args: Vec<(Range,Vec<u8>)> )-> DBResult<()>{
         let write_accesses = args.into_iter().map(|(rng,data)| WriteAccess::new(rng,data)).collect();
         self.send(DBInstruction::OPut(tbl.clone(), write_accesses))
-    }
-
-    fn obj_get_raw<'db>(&'db mut self, tbl: &String, range: Range ) -> DBResult<ObjectTableRawIter<'db>>{
-        return self.obj_get_raw_many(tbl, vec![range])
     }
 
     fn obj_get_raw_many<'db>(&'db mut self, tbl: &String, ranges: Vec<Range> ) -> DBResult<ObjectTableRawIter<'db>>{
@@ -132,16 +106,8 @@ impl DBInterface for DBClient  {
         }
     }
     
-    fn obj_del(&mut self, tbl: &String, rng: Range )-> DBResult<()>{
-        self.obj_del_many(tbl, vec![rng])
-    }
-
     fn obj_del_many(&mut self, tbl: &String, ranges: Vec<Range> )-> DBResult<()>{
         self.send(DBInstruction::ODel(tbl.clone(), ranges))
-    }
-
-    fn obj_del_intersecting(&mut self, tbl: &String, rng: Range )-> DBResult<()>{
-        self.obj_del_intersecting_many(tbl, vec![rng])
     }
 
     fn obj_del_intersecting_many(&mut self, tbl: &String, ranges: Vec<Range> )-> DBResult<()>{

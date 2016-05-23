@@ -30,36 +30,57 @@ pub type ObjectTableIterOk<'db,T> =   Box<Iterator<Item=(Range, Range, T)> + 'db
 pub trait DBInterface {
     fn saveas(&mut self, path: &String) -> DBResult<()>;
 
-    fn bin_put(&mut self, tbl: &String, rng: Range, data: Vec<u8> ) -> DBResult<()>;
     fn bin_put_many(&mut self, tbl: &String, setters: Vec<(Range,Vec<u8>)> )-> DBResult<()>;
+    fn bin_put(&mut self, tbl: &String, rng: Range, data: Vec<u8> ) -> DBResult<()>{
+        self.bin_put_many(tbl, vec![(rng,data)])
+    }
 
-    fn bin_get<'db>(&'db mut self, tbl: &String, rng: Range) -> DBResult<BitmapTableIter<'db>>;
     fn bin_get_many<'db>(&'db mut self, tbl: &String, ranges: Vec<Range>) -> DBResult<BitmapTableIter<'db>>;
+    fn bin_get<'db>(&'db mut self, tbl: &String, rng: Range) -> DBResult<BitmapTableIter<'db>>{
+        self.bin_get_many(tbl, vec![rng])
+    }
 
-    fn bin_del(&mut self, tbl: &String, rng: Range)-> DBResult<()>;
     fn bin_del_many(&mut self, tbl: &String, ranges: Vec<Range>)-> DBResult<()>;
+    fn bin_del(&mut self, tbl: &String, rng: Range)-> DBResult<()>{
+        self.bin_del_many(tbl, vec![rng])
+    }
 
-    fn obj_put<T: Encodable>(&mut self, tbl: &String, rng: Range, obj: &T )-> DBResult<()>;
     fn obj_put_many<T: Encodable>(&mut self, tbl: &String, args: Vec<(Range, &T)> )-> DBResult<()>;
+    fn obj_put<T: Encodable>(&mut self, tbl: &String, rng: Range, obj: &T )-> DBResult<()>{
+        self.obj_put_many(tbl, vec![(rng,obj)])
+    }
     
-    fn obj_get<'db, T: Decodable +'db>(&'db mut self, tbl: &String, rng: Range) -> DBResult<ObjectTableIter<T>>;
     fn obj_get_many<'db, T: Decodable + 'db>(&'db mut self, tbl: &String, ranges: Vec<Range> ) -> DBResult<ObjectTableIter<T>>;
+    fn obj_get<'db, T: Decodable +'db>(&'db mut self, tbl: &String, rng: Range) -> DBResult<ObjectTableIter<T>>{
+        self.obj_get_many(tbl, vec![rng])
+    }
     
-    fn obj_put_raw(&mut self, tbl: &String, range: Range, obj: Vec<u8> )-> DBResult<()>;
     fn obj_put_raw_many(&mut self, tbl: &String, args: Vec<(Range,Vec<u8>)> )-> DBResult<()>;
+    fn obj_put_raw(&mut self, tbl: &String, range: Range, obj: Vec<u8> )-> DBResult<()>{
+        self.obj_put_raw_many(tbl, vec![(range, obj)])
+    }
 
-    fn obj_get_raw<'db>(&'db mut self, tbl: &String, range: Range ) -> DBResult<ObjectTableRawIter<'db>>;
     fn obj_get_raw_many<'db>(&'db mut self, tbl: &String, args: Vec<Range> ) -> DBResult<ObjectTableRawIter<'db>>;
+    fn obj_get_raw<'db>(&'db mut self, tbl: &String, range: Range ) -> DBResult<ObjectTableRawIter<'db>>{
+        self.obj_get_raw_many(tbl, vec![range])
+    }
     
-    fn obj_del(&mut self, tbl: &String, rng: Range )-> DBResult<()>;
     fn obj_del_many(&mut self, tbl: &String, ranges: Vec<Range> )-> DBResult<()>;
+    fn obj_del(&mut self, tbl: &String, rng: Range )-> DBResult<()>{
+        self.obj_del_many(tbl, vec![rng])
+    }
 
-    fn obj_del_intersecting(&mut self, tbl: &String, rng: Range )-> DBResult<()>;
     fn obj_del_intersecting_many(&mut self, tbl: &String, ranges: Vec<Range> )-> DBResult<()>;
+    fn obj_del_intersecting(&mut self, tbl: &String, rng: Range )-> DBResult<()>{
+        self.obj_del_intersecting_many(tbl, vec![rng])
+    }
 
     //version that panics on error
     fn obj_get_ok<'db, T: Decodable + 'db>(&'db mut self, tbl: &String, rng: Range) -> ObjectTableIterOk<'db,T>{
         Box::new(self.obj_get(tbl.into(), rng).unwrap().map(|(q,r,t)| (q,r,t.unwrap())))
+    }
+    fn obj_put_ok<T: Encodable>(& mut self, tbl: &String, rng: Range, obj: &T) {
+        self.obj_put(tbl, rng, obj).unwrap()
     }
 }
 
@@ -77,7 +98,7 @@ fn encode_obj<'db,T: Encodable>(rng: Range, data: &T) -> DBResult<Vec<u8>>{
 mod tests{
     use theban_db::DB;
     use memrange::{Range,range};
-    fn test_dbi<DBI: ::DBInterface>(dbi: &mut DBI){
+    fn test_dbi_obj<DBI: ::DBInterface>(dbi: &mut DBI){
         dbi.obj_put::<u64>(&"tbl".into(),range(123,124), &1 ).ok();
         dbi.obj_put::<u64>(&"tbl".into(),range(222,235), &2 ).ok();
         dbi.obj_put::<u64>(&"tbl".into(),range(125,224), &3 ).ok();
@@ -88,9 +109,10 @@ mod tests{
         assert_eq!(result2, vec![(range(124,221), range(123,124), 1), (range(124,221), range(125,224), 3)] );
     }
 
+
     #[test]
     fn interface_db_test() {
         let mut db = DB::new();
-        test_dbi(&mut db)
+        test_dbi_obj(&mut db)
     }
 }
