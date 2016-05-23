@@ -57,14 +57,15 @@ impl<'db, Iter: Iterator<Item=(Range,InnerItem)> + Queryable<'db>, InnerItem > I
         // current query_iter is used up
         self.ensure_current_query_iter();
 
+        if self.current_query_iter.is_some() {
 
-        if let Some(mut query_iter) = self.current_query_iter.take() {
-
-            //query_iter for the current range has an element => return it
-            if let Some((rng, data)) =  query_iter.next() {
-                self.current_query_iter = Some(query_iter);
-                return Some( ( self.current_range.unwrap(), rng, data ) )
-            }
+                //get ref to internal iter in new scope to satisfy borrow checker
+                if let Some(ref mut query_iter) = self.current_query_iter {
+                    //query_iter for the current range has an element => return it
+                    if let Some((rng, data)) =  query_iter.next() {
+                        return Some( ( self.current_range.unwrap(), rng, data ) )
+                    }
+                }
 
             //the query_iter for the current range has no more elements => recurse to get query_iter for the next range
             self.current_query_iter = None;
